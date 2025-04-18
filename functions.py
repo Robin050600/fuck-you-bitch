@@ -9,6 +9,7 @@ PONS_API_KEY = "c9d57f32ea32019e1088ee54c0c38f86daed6d15dc18f6afe0a2fc61698d9332
 
 # PONS API oder Fallback-Daten
 def fetch_pons_words(theme, limit=100):
+    debug_log = "fetch_pons_words gestartet"
     # Generischer Suchbegriff basierend auf Thema
     theme_queries = {
         "Essen": "food",
@@ -23,7 +24,7 @@ def fetch_pons_words(theme, limit=100):
             headers={"X-Secret": PONS_API_KEY},
             params={"q": query, "l": "ende", "language": "en", "limit": limit}
         )
-        debug_log = f"PONS API: Status {response.status_code}, Anfrage: q={query}, l=ende"
+        debug_log += f", PONS API: Status {response.status_code}, Anfrage: q={query}, l=ende"
         if response.status_code == 200:
             words = []
             for item in response.json():
@@ -42,7 +43,7 @@ def fetch_pons_words(theme, limit=100):
             debug_log += f", Fehler: {response.text}"
             raise Exception(f"PONS API Fehler: Status {response.status_code}, Antwort: {response.text}")
     except Exception as e:
-        debug_log = f"PONS API Fehler: {str(e)}, Fallback aktiviert"
+        debug_log += f", PONS API Fehler: {str(e)}, Fallback aktiviert"
         # Fallback-Daten
         fallback_words = [
             {"word": "apple", "translation": "Apfel", "meaning": "A fruit that grows on trees."},
@@ -82,32 +83,4 @@ def ask_grok(theme, words, difficulty):
     difficulty_text = {
         "Beginner": "simple, everyday words suitable for beginners, e.g., 'apple', 'bread'",
         "Intermediate": "moderately complex words suitable for intermediate learners, e.g., 'recipe', 'dessert'",
-        "Advanced": "complex or specialized words suitable for advanced learners, e.g., 'cuisine', 'gastronomy'"
-    }[difficulty]
-
-    # Prompt für Grok
-    prompt = f"""
-    You are a language learning assistant. Given a list of words with their meanings, select up to 20 words that relate to the theme '{theme}' and match the difficulty level '{difficulty_text}'. Only select words that are present in the provided list. Return the selected words as a JSON list, e.g., ["apple", "banana"]. If no words match the theme and difficulty, return an empty list [].
-
-    Word list:
-    {json.dumps(words, indent=2)}
-    """
-
-    try:
-        response = requests.post(
-            "https://api.x.ai/v1/chat/completions",
-            headers={
-                "Content-Type": "application/json",
-                "Authorization": f"Bearer {GROK_API_KEY}"
-            },
-            json={
-                "messages": [
-                    {"role": "system", "content": "You are a precise language learning assistant."},
-                    {"role": "user", "content": prompt}
-                ],
-                "model": "grok-3-latest",
-                "stream": False,
-                "temperature": 0
-            }
-        )
-        debug_log += f",
+        "Advanced
