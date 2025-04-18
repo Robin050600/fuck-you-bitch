@@ -5,44 +5,90 @@ import random
 
 # API-Schlüssel
 GROK_API_KEY = "xai-uOzSSJW1PHZZUPqZKznd6fyiaBcGkVAyQEWHacCReXDsEiTcWh4bmjJ47azeD0EvC1KngpXHBBsPDpV6"
-PONS_API_KEY = "c9d57f32ea32019e1088ee54c0c38f86daed6d15dc18f6afe0a2fc61698d9332"
+OXFORD_APP_ID = "098ae05c"
+OXFORD_APP_KEY = "ebd79756ae171cd4ce643ea862d00d62"
 
-# PONS API oder Fallback-Daten
-def fetch_pons_words(theme, limit=100):
-    debug_log = "fetch_pons_words gestartet"
-    theme_queries = {
-        "Essen": "food",
-        "Kleidung": "clothing",
-        "Reisen": "travel"
+# Oxford API oder Fallback-Daten
+def fetch_oxford_words(theme, limit=100):
+    debug_log = "fetch_oxford_words gestartet"
+    theme_words = {
+        "Essen": [
+            "apple", "banana", "bread", "cheese", "milk", "egg", "rice", "meat", 
+            "fish", "pasta", "soup", "salad", "cake", "fruit", "vegetable", "dessert"
+        ],
+        "Kleidung": [
+            "shirt", "jacket", "pants", "shoes", "hat", "scarf", "gloves", 
+            "dress", "coat", "socks", "belt"
+        ],
+        "Reisen": [
+            "car", "train", "bus", "airplane", "bicycle", "boat", "passport", 
+            "ticket", "map", "luggage", "hotel"
+        ]
     }
-    query = theme_queries.get(theme, "word")
+    selected_words = theme_words.get(theme, [])[:limit]
+    debug_log += f", Thema: {theme}, {len(selected_words)} Wörter ausgew chosen"
 
-    try:
-        response = requests.get(
-            "https://api.pons.com/v1/dictionary",
-            headers={"X-Secret": PONS_API_KEY},
-            params={"q": query, "l": "ende", "language": "en", "limit": limit}
-        )
-        debug_log += f", PONS API: Status {response.status_code}, Anfrage: q={query}, l=ende"
-        if response.status_code == 200:
-            words = []
-            for item in response.json():
-                if item.get("hits") and item["hits"][0].get("roms"):
-                    word_data = item["hits"][0]["roms"][0]
-                    translations = word_data.get("arabs", [{}])[0].get("translations", [])
-                    if translations:
+    words = []
+    for word in selected_words:
+        try:
+            response = requests.get(
+                f"https://od-api-sandbox.oxforddictionaries.com/api/v2/entries/en-gb/{word}",
+                headers={
+                    "app_id": OXFORD_APP_ID,
+                    "app_key": OXFORD_APP_KEY
+                },
+                params={"fields": "translations,definitions"}
+            )
+            debug_log += f", Oxford API für '{word}': Status {response.status_code}"
+            if response.status_code == 200:
+                data = response.json()
+                try:
+                    # Extrahiere Übersetzung (z. B. ins Deutsche)
+                    translation = None
+                    meaning = None
+                    if "results" in data and data["results"]:
+                        for result in data["results"]:
+                            for lexical_entry in result.get("lexicalEntries", []):
+                                for entry in lexical_entry.get("entries", []):
+                                    for sense in entry.get("senses", []):
+                                        # Übersetzung
+                                        translations = sense.get("translations", [])
+                                        if translations:
+                                            for t in translations:
+                                                if t.get("language") == "de":
+                                                    translation = t.get("text")
+                                                    break
+                                        # Bedeutung
+                                        definitions = sense.get("definitions", [])
+                                        if definitions:
+                                            meaning = definitions[0]
+                                        if translation and meaning:
+                                            break
+                                    if translation and meaning:
+                                        break
+                                if translation and meaning:
+                                    break
+                            if translation and meaning:
+                                break
+                    if translation and meaning:
                         words.append({
-                            "word": word_data["headword"],
-                            "translation": translations[0]["target"],
-                            "meaning": translations[0].get("source", "")
+                            "word": word,
+                            "translation": translation,
+                            "meaning": meaning
                         })
-            debug_log += f", {len(words)} Wörter geladen"
-            return words, debug_log
-        else:
-            debug_log += f", Fehler: {response.text}"
-            raise Exception(f"PONS API Fehler: Status {response.status_code}, Antwort: {response.text}")
-    except Exception as e:
-        debug_log += f", PONS API Fehler: {str(e)}, Fallback aktiviert"
+                        debug_log += f", Wort hinzugefügt: {word} -> {translation}"
+                    else:
+                        debug_log += f", Keine Übersetzung oder Bedeutung für '{word}' gefunden"
+                except Exception as e:
+                    debug_log += f", Fehler beim Parsen für '{word}': {str(e)}"
+            else:
+                debug_log += f", API-Fehler für '{word}': Status {response.status_code}, Antwort: {response.text}"
+        except Exception as e:
+            debug_log += f", Fehler bei API-Anfrage für '{word}': {str(e)}"
+
+    debug_log += f", {len(words)} Wörter geladen"
+    if not words:
+        debug_log += ", Fallback aktiviert"
         fallback_words = [
             {"word": "apple", "translation": "Apfel", "meaning": "A fruit that grows on trees."},
             {"word": "banana", "translation": "Banane", "meaning": "A yellow fruit."},
@@ -71,7 +117,10 @@ def fetch_pons_words(theme, limit=100):
             {"word": "bicycle", "translation": "Fahrrad", "meaning": "A two-wheeled vehicle."},
             {"word": "boat", "translation": "Boot", "meaning": "A water vehicle."}
         ]
-        return fallback_words, debug_log
+        words = [w for w in fallback_words if w["word"] in theme_words.get(theme, [])]
+        debug_log += f", Fallback-Wörter: {len(words)} geladen"
+
+    return words, debug_log
 
 def ask_grok(theme, words, difficulty):
     debug_log = f"Filterung für Thema: {theme}, Schwierigkeitsgrad: {difficulty}"
@@ -140,8 +189,8 @@ def create_module(theme, difficulty):
     max_attempts = 5
 
     while len(collected_words) < target_count and max_attempts > 0:
-        new_words, pons_log = fetch_pons_words(theme, limit=100)
-        debug_logs.append(pons_log)
+        new_words, oxford_log = fetch_oxford_words(theme, limit=100)
+        debug_logs.append(oxford_log)
         new_words = [w for w in new_words if w["word"] not in used_words]
         debug_logs.append(f"Nach Entfernen verwendeter Wörter: {len(new_words)} verfügbar")
         if not new_words:
