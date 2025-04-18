@@ -5,37 +5,63 @@ import random
 
 # API-Schlüssel
 GROK_API_KEY = "xai-uOzSSJW1PHZZUPqZKznd6fyiaBcGkVAyQEWHacCReXDsEiTcWh4bmjJ47azeD0EvC1KngpXHBBsPDpV6"
+PONS_API_KEY = "c9d57f32ea32019e1088ee54c0c38f86daed6d15dc18f6afe0a2fc61698d9332"
 
-# Fallback-Daten für Tests
+# PONS API oder Fallback-Daten
 def fetch_pons_words(limit=100):
-    return [
-        {"word": "apple", "translation": "Apfel", "meaning": "A fruit that grows on trees."},
-        {"word": "banana", "translation": "Banane", "meaning": "A yellow fruit."},
-        {"word": "bread", "translation": "Brot", "meaning": "A staple food made from flour."},
-        {"word": "cheese", "translation": "Käse", "meaning": "A dairy product."},
-        {"word": "milk", "translation": "Milch", "meaning": "A dairy drink."},
-        {"word": "egg", "translation": "Ei", "meaning": "A food from chickens."},
-        {"word": "rice", "translation": "Reis", "meaning": "A staple grain."},
-        {"word": "meat", "translation": "Fleisch", "meaning": "Animal flesh used as food."},
-        {"word": "fish", "translation": "Fisch", "meaning": "A sea creature used as food."},
-        {"word": "pasta", "translation": "Nudeln", "meaning": "A food made from dough."},
-        {"word": "soup", "translation": "Suppe", "meaning": "A liquid dish."},
-        {"word": "salad", "translation": "Salat", "meaning": "A dish of raw vegetables."},
-        {"word": "cake", "translation": "Kuchen", "meaning": "A sweet dessert."},
-        {"word": "shirt", "translation": "Hemd", "meaning": "A piece of clothing."},
-        {"word": "jacket", "translation": "Jacke", "meaning": "A piece of outerwear."},
-        {"word": "pants", "translation": "Hose", "meaning": "Clothing for legs."},
-        {"word": "shoes", "translation": "Schuhe", "meaning": "Footwear."},
-        {"word": "hat", "translation": "Hut", "meaning": "Headwear."},
-        {"word": "scarf", "translation": "Schal", "meaning": "A piece of clothing for the neck."},
-        {"word": "gloves", "translation": "Handschuhe", "meaning": "Clothing for hands."},
-        {"word": "car", "translation": "Auto", "meaning": "A vehicle with four wheels."},
-        {"word": "train", "translation": "Zug", "meaning": "A mode of transport."},
-        {"word": "bus", "translation": "Bus", "meaning": "A public transport vehicle."},
-        {"word": "airplane", "translation": "Flugzeug", "meaning": "A flying vehicle."},
-        {"word": "bicycle", "translation": "Fahrrad", "meaning": "A two-wheeled vehicle."},
-        {"word": "boat", "translation": "Boot", "meaning": "A water vehicle."}
-    ]
+    try:
+        response = requests.get(
+            "https://api.pons.com/v1/dictionary",
+            headers={"X-Secret": PONS_API_KEY},
+            params={"language": "en-de", "limit": limit}
+        )
+        debug_log = f"PONS API: Status {response.status_code}"
+        if response.status_code == 200:
+            words = [
+                {
+                    "word": item["hits"][0]["roms"][0]["headword"],
+                    "translation": item["hits"][0]["roms"][0]["arabs"][0]["translations"][0]["target"],
+                    "meaning": item["hits"][0]["roms"][0]["arabs"][0]["translations"][0].get("source", "")
+                }
+                for item in response.json() if item["hits"] and item["hits"][0]["roms"]
+            ]
+            debug_log += f", {len(words)} Wörter geladen"
+            return words, debug_log
+        else:
+            debug_log += f", Fehler: {response.text}"
+            raise Exception(f"PONS API Fehler: Status {response.status_code}")
+    except Exception as e:
+        debug_log = f"PONS API Fehler: {str(e)}, Fallback aktiviert"
+        # Fallback-Daten
+        fallback_words = [
+            {"word": "apple", "translation": "Apfel", "meaning": "A fruit that grows on trees."},
+            {"word": "banana", "translation": "Banane", "meaning": "A yellow fruit."},
+            {"word": "bread", "translation": "Brot", "meaning": "A staple food made from flour."},
+            {"word": "cheese", "translation": "Käse", "meaning": "A dairy product."},
+            {"word": "milk", "translation": "Milch", "meaning": "A dairy drink."},
+            {"word": "egg", "translation": "Ei", "meaning": "A food from chickens."},
+            {"word": "rice", "translation": "Reis", "meaning": "A staple grain."},
+            {"word": "meat", "translation": "Fleisch", "meaning": "Animal flesh used as food."},
+            {"word": "fish", "translation": "Fisch", "meaning": "A sea creature used as food."},
+            {"word": "pasta", "translation": "Nudeln", "meaning": "A food made from dough."},
+            {"word": "soup", "translation": "Suppe", "meaning": "A liquid dish."},
+            {"word": "salad", "translation": "Salat", "meaning": "A dish of raw vegetables."},
+            {"word": "cake", "translation": "Kuchen", "meaning": "A sweet dessert."},
+            {"word": "shirt", "translation": "Hemd", "meaning": "A piece of clothing."},
+            {"word": "jacket", "translation": "Jacke", "meaning": "A piece of outerwear."},
+            {"word": "pants", "translation": "Hose", "meaning": "Clothing for legs."},
+            {"word": "shoes", "translation": "Schuhe", "meaning": "Footwear."},
+            {"word": "hat", "translation": "Hut", "meaning": "Headwear."},
+            {"word": "scarf", "translation": "Schal", "meaning": "A piece of clothing for the neck."},
+            {"word": "gloves", "translation": "Handschuhe", "meaning": "Clothing for hands."},
+            {"word": "car", "translation": "Auto", "meaning": "A vehicle with four wheels."},
+            {"word": "train", "translation": "Zug", "meaning": "A mode of transport."},
+            {"word": "bus", "translation": "Bus", "meaning": "A public transport vehicle."},
+            {"word": "airplane", "translation": "Flugzeug", "meaning": "A flying vehicle."},
+            {"word": "bicycle", "translation": "Fahrrad", "meaning": "A two-wheeled vehicle."},
+            {"word": "boat", "translation": "Boot", "meaning": "A water vehicle."}
+        ]
+        return fallback_words, debug_log
 
 # Grok API für Filterung
 def ask_grok(theme, words, difficulty):
@@ -43,9 +69,9 @@ def ask_grok(theme, words, difficulty):
     
     # Schwierigkeitsgrad-Definition
     difficulty_text = {
-        "Beginner": "simple, everyday words that beginners understand, like 'apple' or 'bread'",
-        "Intermediate": "moderately complex words, like 'recipe' or 'dessert'",
-        "Advanced": "complex or rare words, like 'cuisine' or 'gastronomy'"
+        "Beginner": "simple, everyday words suitable for beginners, e.g., 'apple', 'bread'",
+        "Intermediate": "moderately complex words suitable for intermediate learners, e.g., 'recipe', 'dessert'",
+        "Advanced": "complex or specialized words suitable for advanced learners, e.g., 'cuisine', 'gastronomy'"
     }[difficulty]
 
     # Prompt für Grok
@@ -110,8 +136,8 @@ def create_module(theme, difficulty):
     max_attempts = 5
 
     while len(collected_words) < target_count and max_attempts > 0:
-        new_words = fetch_pons_words(limit=100)
-        debug_logs.append(f"Neue Wörter geladen: {len(new_words)} verfügbar")
+        new_words, pons_log = fetch_pons_words(limit=100)
+        debug_logs.append(pons_log)
         new_words = [w for w in new_words if w["word"] not in used_words]
         debug_logs.append(f"Nach Entfernen verwendeter Wörter: {len(new_words)} verfügbar")
         if not new_words:
@@ -120,6 +146,9 @@ def create_module(theme, difficulty):
 
         filtered_words, filter_log = ask_grok(theme, new_words, difficulty)
         debug_logs.append(filter_log)
+        if not filtered_words:
+            debug_logs.append("Keine gefilterten Wörter, Schleife abgebrochen")
+            break
         for word in filtered_words:
             if word not in used_words and len(collected_words) < target_count:
                 for w in new_words:
