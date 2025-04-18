@@ -66,13 +66,21 @@ def ask_grok(theme, words, difficulty):
                 "temperature": 0
             }
         )
+        debug_log += f", HTTP-Status: {response.status_code}"
         if response.status_code == 200:
-            result = json.loads(response.json()["choices"][0]["message"]["content"])
-            debug_log += f", Gefilterte Wörter: {result}"
-            return result, debug_log
+            try:
+                result = json.loads(response.json()["choices"][0]["message"]["content"])
+                if not isinstance(result, list):
+                    debug_log += f", API-Antwort ist kein JSON-Array: {result}"
+                    raise ValueError("API-Antwort ist kein JSON-Array")
+                debug_log += f", Gefilterte Wörter: {result}"
+                return result, debug_log
+            except (json.JSONDecodeError, KeyError, ValueError) as e:
+                debug_log += f", Fehler beim Parsen der API-Antwort: {str(e)}"
+                raise
         else:
-            debug_log += f", Grok API Fehler: Status {response.status_code}"
-            return [], debug_log
+            debug_log += f", Grok API Fehler: Status {response.status_code}, Antwort: {response.text}"
+            raise Exception(f"HTTP-Fehler: {response.status_code}")
     except Exception as e:
         debug_log += f", Fehler bei Grok API: {str(e)}"
         # Fallback: Einfache Filterung
