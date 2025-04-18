@@ -110,46 +110,4 @@ def ask_grok(theme, words, difficulty):
                 "temperature": 0
             }
         )
-        debug_log += f", HTTP-Status: {response.status_code}"
-        if response.status_code == 200:
-            try:
-                result = json.loads(response.json()["choices"][0]["message"]["content"])
-                if not isinstance(result, list):
-                    debug_log += f", API-Antwort ist kein JSON-Array: {result}"
-                    raise ValueError("API-Antwort ist kein JSON-Array")
-                debug_log += f", Gefilterte Wörter: {result}"
-                return result, debug_log
-            except (json.JSONDecodeError, KeyError, ValueError) as e:
-                debug_log += f", Fehler beim Parsen der API-Antwort: {str(e)}, Rohantwort: {response.text}"
-                raise
-        else:
-            debug_log += f", Grok API Fehler: Status {response.status_code}, Antwort: {response.text}"
-            raise Exception(f"HTTP-Fehler: {response.status_code}")
-    except Exception as e:
-        debug_log += f", Fehler bei Grok API: {str(e)}"
-        # Fallback: Einfache Filterung
-        theme_words = {
-            "Essen": ["apple", "banana", "bread", "cheese", "milk", "egg", "rice", "meat", "fish", "pasta", "soup", "salad", "cake"],
-            "Kleidung": ["shirt", "jacket", "pants", "shoes", "hat", "scarf", "gloves"],
-            "Reisen": ["car", "train", "bus", "airplane", "bicycle", "boat"]
-        }
-        filtered = [w for w in theme_words.get(theme, []) if w in [word["word"] for word in words]]
-        debug_log += f", Fallback aktiviert, Gefilterte Wörter: {filtered}"
-        return filtered, debug_log
-
-# Modul erstellen
-def create_module(theme, difficulty):
-    debug_logs = []
-    debug_logs.append("Starte Modulerstellung")
-    target_count = 20
-    collected_words = []
-    used_words = set()
-    max_attempts = 5
-
-    while len(collected_words) < target_count and max_attempts > 0:
-        new_words, pons_log = fetch_pons_words(theme, limit=100)
-        debug_logs.append(pons_log)
-        new_words = [w for w in new_words if w["word"] not in used_words]
-        debug_logs.append(f"Nach Entfernen verwendeter Wörter: {len(new_words)} verfügbar")
-        if not new_words:
-            debug_logs.append
+        debug_log += f",
