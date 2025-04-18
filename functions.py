@@ -1,6 +1,10 @@
+import requests
 import json
 import os
 import random
+
+# API-Schlüssel
+GROK_API_KEY = "xai-uOzSSJW1PHZZUPqZKznd6fyiaBcGkVAyQEWHacCReXDsEiTcWh4bmjJ47azeD0EvC1KngpXHBBsPDpV6"
 
 # Fallback-Daten für Tests
 def fetch_pons_words(limit=100):
@@ -9,24 +13,119 @@ def fetch_pons_words(limit=100):
         {"word": "banana", "translation": "Banane", "meaning": "A yellow fruit."},
         {"word": "bread", "translation": "Brot", "meaning": "A staple food made from flour."},
         {"word": "cheese", "translation": "Käse", "meaning": "A dairy product."},
+        {"word": "milk", "translation": "Milch", "meaning": "A dairy drink."},
+        {"word": "egg", "translation": "Ei", "meaning": "A food from chickens."},
+        {"word": "rice", "translation": "Reis", "meaning": "A staple grain."},
+        {"word": "meat", "translation": "Fleisch", "meaning": "Animal flesh used as food."},
+        {"word": "fish", "translation": "Fisch", "meaning": "A sea creature used as food."},
         {"word": "shirt", "translation": "Hemd", "meaning": "A piece of clothing."},
         {"word": "jacket", "translation": "Jacke", "meaning": "A piece of outerwear."},
+        {"word": "pants", "translation": "Hose", "meaning": "Clothing for legs."},
+        {"word": "shoes", "translation": "Schuhe", "meaning": "Footwear."},
+        {"word": "hat", "translation": "Hut", "meaning": "Headwear."},
         {"word": "car", "translation": "Auto", "meaning": "A vehicle with four wheels."},
         {"word": "train", "translation": "Zug", "meaning": "A mode of transport."},
-        {"word": "milk", "translation": "Milch", "meaning": "A dairy drink."},
-        {"word": "pants", "translation": "Hose", "meaning": "Clothing for legs."},
-        {"word": "bus", "translation": "Bus", "meaning": "A public transport vehicle."}
+        {"word": "bus", "translation": "Bus", "meaning": "A public transport vehicle."},
+        {"word": "airplane", "translation": "Flugzeug", "meaning": "A flying vehicle."},
+        {"word": "bicycle", "translation": "Fahrrad", "meaning": "A two-wheeled vehicle."}
     ]
 
-# Einfache Filterung statt Grok-API
+# Grok API für Filterung
+def»
+
+System: Es sieht so aus, als wäre deine Nachricht unvollständig, da der Code für `functions.py` bei der `ask_grok`-Funktion abbricht. Ich werde die `ask_grok`-Funktion und den Rest von `functions.py` basierend auf deinen Anforderungen und der bereitgestellten CURL-Anfrage vervollständigen. Ziel ist es, die Grok-API korrekt zu integrieren, um Wörter nach Thema und Schwierigkeitsgrad zu filtern, und gleichzeitig die bestehende Funktionalität (Fallback-Daten, Debug-Logs) beizubehalten.
+
+### Vervollständigter Code für `functions.py`
+
+Hier ist die vollständige Version von `functions.py`, die die Grok-API mit der neuen URL (`https://api.x.ai/v1/chat/completions`) und dem Modell `grok-3-latest` verwendet. Die `ask_grok`-Funktion ist so angepasst, dass sie einen klaren Prompt sendet und Fehler behandelt. Ich habe auch die Fallback-Daten und Debug-Logs beibehalten.
+
+```python
+import requests
+import json
+import os
+import random
+
+# API-Schlüssel
+GROK_API_KEY = "xai-uOzSSJW1PHZZUPqZKznd6fyiaBcGkVAyQEWHacCReXDsEiTcWh4bmjJ47azeD0EvC1KngpXHBBsPDpV6"
+
+# Fallback-Daten für Tests
+def fetch_pons_words(limit=100):
+    return [
+        {"word": "apple", "translation": "Apfel", "meaning": "A fruit that grows on trees."},
+        {"word": "banana", "translation": "Banane", "meaning": "A yellow fruit."},
+        {"word": "bread", "translation": "Brot", "meaning": "A staple food made from flour."},
+        {"word": "cheese", "translation": "Käse", "meaning": "A dairy product."},
+        {"word": "milk", "translation": "Milch", "meaning": "A dairy drink."},
+        {"word": "egg", "translation": "Ei", "meaning": "A food from chickens."},
+        {"word": "rice", "translation": "Reis", "meaning": "A staple grain."},
+        {"word": "meat", "translation": "Fleisch", "meaning": "Animal flesh used as food."},
+        {"word": "fish", "translation": "Fisch", "meaning": "A sea creature used as food."},
+        {"word": "shirt", "translation": "Hemd", "meaning": "A piece of clothing."},
+        {"word": "jacket", "translation": "Jacke", "meaning": "A piece of outerwear."},
+        {"word": "pants", "translation": "Hose", "meaning": "Clothing for legs."},
+        {"word": "shoes", "translation": "Schuhe", "meaning": "Footwear."},
+        {"word": "hat", "translation": "Hut", "meaning": "Headwear."},
+        {"word": "car", "translation": "Auto", "meaning": "A vehicle with four wheels."},
+        {"word": "train", "translation": "Zug", "meaning": "A mode of transport."},
+        {"word": "bus", "translation": "Bus", "meaning": "A public transport vehicle."},
+        {"word": "airplane", "translation": "Flugzeug", "meaning": "A flying vehicle."},
+        {"word": "bicycle", "translation": "Fahrrad", "meaning": "A two-wheeled vehicle."}
+    ]
+
+# Grok API für Filterung
 def ask_grok(theme, words, difficulty):
-    theme_words = {
-        "Essen": ["apple", "banana", "bread", "cheese", "milk"],
-        "Kleidung": ["shirt", "jacket", "pants"],
-        "Reisen": ["car", "train", "bus"]
-    }
-    filtered = [w for w in theme_words.get(theme, []) if w in [word["word"] for word in words]]
-    return filtered, f"Filterung für Thema: {theme}, Schwierigkeitsgrad: {difficulty}, Gefilterte Wörter: {filtered}"
+    debug_log = f"Filterung für Thema: {theme}, Schwierigkeitsgrad: {difficulty}"
+    
+    # Schwierigkeitsgrad-Definition
+    difficulty_text = {
+        "Beginner": "simple, everyday words that beginners understand, like 'apple' or 'bread'",
+        "Intermediate": "moderately complex words, like 'recipe' or 'dessdessert'",
+        "Advanced": "complex or rare words, like 'cuisine' or 'gastronomy'"
+    }[difficulty]
+
+    # Prompt für Grok
+    prompt = f"""
+    You are a language learning assistant. Given a list of words with their meanings, select up to 20 words that relate to the theme '{theme}' and match the difficulty level '{difficulty_text}'. Return only the words as a JSON list, e.g., ["apple", "banana"]. If no words match, return an empty list [].
+
+    Word list:
+    {json.dumps(words, indent=2)}
+    """
+
+    try:
+        response = requests.post(
+            "https://api.x.ai/v1/chat/completions",
+            headers={
+                "Content-Type": "application/json",
+                "Authorization": f"Bearer {GROK_API_KEY}"
+            },
+            json={
+                "messages": [
+                    {"role": "system", "content": "You are a precise language learning assistant."},
+                    {"role": "user", "content": prompt}
+                ],
+                "model": "grok-3-latest",
+                "stream": False,
+                "temperature": 0
+            }
+        )
+        if response.status_code == 200:
+            result = json.loads(response.json()["choices"][0]["message"]["content"])
+            debug_log += f", Gefilterte Wörter: {result}"
+            return result, debug_log
+        else:
+            debug_log += f", Grok API Fehler: Status {response.status_code}"
+            return [], debug_log
+    except Exception as e:
+        debug_log += f", Fehler bei Grok API: {str(e)}"
+        # Fallback: Einfache Filterung
+        theme_words = {
+            "Essen": ["apple", "banana", "bread", "cheese", "milk", "egg", "rice", "meat", "fish"],
+            "Kleidung": ["shirt", "jacket", "pants", "shoes", "hat"],
+            "Reisen": ["car", "train", "bus", "airplane", "bicycle"]
+        }
+        filtered = [w for w in theme_words.get(theme, []) if w in [word["word"] for word in words]]
+        debug_log += f", Fallback aktiviert, Gefilterte Wörter: {filtered}"
+        return filtered, debug_log
 
 # Modul erstellen
 def create_module(theme, difficulty):
