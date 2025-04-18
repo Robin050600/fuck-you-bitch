@@ -19,7 +19,7 @@ if "module" not in st.session_state:
 
 # Sidebar
 st.sidebar.title("Sprachlern-App")
-mode = st.sidebar.selectbox("Modus", ["Modul erstellen", "Übersetzungen üben"])
+mode = st.sidebar.selectbox("Modus", ["Modul erstellen", "Übersetzungen üben", "Grok-API testen"])
 
 # Hauptbereich
 if mode == "Modul erstellen":
@@ -68,3 +68,32 @@ elif mode == "Übersetzungen üben":
             st.markdown(f"<div class='feedback'>{st.session_state.feedback}</div>", unsafe_allow_html=True)
         else:
             st.write("Alle Wörter durch! Wähle ein neues Modul.")
+
+elif mode == "Grok-API testen":
+    st.header("Grok-API Test")
+    if st.button("API testen"):
+        try:
+            response = requests.post(
+                "https://api.x.ai/v1/chat/completions",
+                headers={
+                    "Content-Type": "application/json",
+                    "Authorization": f"Bearer {GROK_API_KEY}"
+                },
+                json={
+                    "messages": [
+                        {"role": "system", "content": "You are a test assistant."},
+                        {"role": "user", "content": "Testing. Just say hi and hello world and nothing else."}
+                    ],
+                    "model": "grok-3-latest",
+                    "stream": False,
+                    "temperature": 0
+                }
+            )
+            st.write(f"HTTP-Status: {response.status_code}")
+            if response.status_code == 200:
+                result = response.json()
+                st.write("API-Antwort:", result["choices"][0]["message"]["content"])
+            else:
+                st.error(f"API-Fehler: Status {response.status_code}, Antwort: {response.text}")
+        except Exception as e:
+            st.error(f"Fehler beim API-Test: {str(e)}")
