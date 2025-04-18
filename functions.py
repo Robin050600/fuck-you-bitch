@@ -4,8 +4,8 @@ import os
 import random
 
 # API-Schlüssel (sicher speichern!)
-PONS_API_KEY = "dein_pons_schlüssel"  # Ersetze mit deinem PONS API-Schlüssel
-GROK_API_KEY = "dein_xAI_schlüssel"   # Ersetze mit deinem Grok API-Schlüssel
+PONS_API_KEY = "c9d57f32ea32019e1088ee54c0c38f86daed6d15dc18f6afe0a2fc61698d9332"  # Ersetze mit deinem PONS API-Schlüssel
+GROK_API_KEY = "xai-uOzSSJW1PHZZUPqZKznd6fyiaBcGkVAyQEWHacCReXDsEiTcWh4bmjJ47azeD0EvC1KngpXHBBsPDpV6"   # Ersetze mit deinem Grok API-Schlüssel
 
 # PONS API für Wörter und Übersetzungen
 def fetch_pons_words(limit=100):
