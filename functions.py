@@ -8,23 +8,34 @@ GROK_API_KEY = "xai-uOzSSJW1PHZZUPqZKznd6fyiaBcGkVAyQEWHacCReXDsEiTcWh4bmjJ47aze
 PONS_API_KEY = "c9d57f32ea32019e1088ee54c0c38f86daed6d15dc18f6afe0a2fc61698d9332"
 
 # PONS API oder Fallback-Daten
-def fetch_pons_words(limit=100):
+def fetch_pons_words(theme, limit=100):
+    # Generischer Suchbegriff basierend auf Thema
+    theme_queries = {
+        "Essen": "food",
+        "Kleidung": "clothing",
+        "Reisen": "travel"
+    }
+    query = theme_queries.get(theme, "word")  # Fallback-Suchbegriff
+
     try:
         response = requests.get(
             "https://api.pons.com/v1/dictionary",
             headers={"X-Secret": PONS_API_KEY},
-            params={"language": "en-de", "limit": limit}
+            params={"q": query, "l": "deen", "language": "en", "limit": limit}
         )
-        debug_log = f"PONS API: Status {response.status_code}"
+        debug_log = f"PONS API: Status {response.status_code}, Anfrage: q={query}, l=deen"
         if response.status_code == 200:
-            words = [
-                {
-                    "word": item["hits"][0]["roms"][0]["headword"],
-                    "translation": item["hits"][0]["roms"][0]["arabs"][0]["translations"][0]["target"],
-                    "meaning": item["hits"][0]["roms"][0]["arabs"][0]["translations"][0].get("source", "")
-                }
-                for item in response.json() if item["hits"] and item["hits"][0]["roms"]
-            ]
+            words = []
+            for item in response.json():
+                if item.get("hits") and item["hits"][0].get("roms"):
+                    word_data = item["hits"][0]["roms"][0]
+                    translations = word_data.get("arabs", [{}])[0].get("translations", [])
+                    if translations:
+                        words.append({
+                            "word": word_data["headword"],
+                            "translation": translations[0]["target"],
+                            "meaning": translations[0].get("source", "")
+                        })
             debug_log += f", {len(words)} Wörter geladen"
             return words, debug_log
         else:
@@ -136,7 +147,7 @@ def create_module(theme, difficulty):
     max_attempts = 5
 
     while len(collected_words) < target_count and max_attempts > 0:
-        new_words, pons_log = fetch_pons_words(limit=100)
+        new_words, pons_log = fetch_pons_words(theme, limit=100)
         debug_logs.append(pons_log)
         new_words = [w for w in new_words if w["word"] not in used_words]
         debug_logs.append(f"Nach Entfernen verwendeter Wörter: {len(new_words)} verfügbar")
