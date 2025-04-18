@@ -28,11 +28,18 @@ if mode == "Modul erstellen":
     difficulty = st.selectbox("Schwierigkeitsgrad", ["Beginner", "Intermediate", "Advanced"])
     if st.button("Modul erstellen"):
         try:
-            st.session_state.module = create_module(theme, difficulty)
+            st.session_state.module, debug_logs = create_module(theme, difficulty)
             st.session_state.current_word_index = 0
             st.session_state.feedback = ""
             st.success(f"Modul für {theme} ({difficulty}) erstellt!")
-            st.write("Wörter:", [w["word"] for w in st.session_state.module["words"]])
+            st.write("Debug: Modulinhalt:", st.session_state.module)
+            if st.session_state.module["words"]:
+                st.write("Wörter:", [w["word"] for w in st.session_state.module["words"]])
+            else:
+                st.error("Keine Wörter im Modul! Siehe Debug-Logs unten.")
+            st.subheader("Debug-Logs:")
+            for log in debug_logs:
+                st.write(log)
         except Exception as e:
             st.error(f"Fehler beim Erstellen des Moduls: {e}")
 
