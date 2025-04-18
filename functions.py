@@ -21,9 +21,9 @@ def fetch_pons_words(theme, limit=100):
         response = requests.get(
             "https://api.pons.com/v1/dictionary",
             headers={"X-Secret": PONS_API_KEY},
-            params={"q": query, "l": "deen", "language": "en", "limit": limit}
+            params={"q": query, "l": "ende", "language": "en", "limit": limit}
         )
-        debug_log = f"PONS API: Status {response.status_code}, Anfrage: q={query}, l=deen"
+        debug_log = f"PONS API: Status {response.status_code}, Anfrage: q={query}, l=ende"
         if response.status_code == 200:
             words = []
             for item in response.json():
@@ -40,7 +40,7 @@ def fetch_pons_words(theme, limit=100):
             return words, debug_log
         else:
             debug_log += f", Fehler: {response.text}"
-            raise Exception(f"PONS API Fehler: Status {response.status_code}")
+            raise Exception(f"PONS API Fehler: Status {response.status_code}, Antwort: {response.text}")
     except Exception as e:
         debug_log = f"PONS API Fehler: {str(e)}, Fallback aktiviert"
         # Fallback-Daten
@@ -152,58 +152,4 @@ def create_module(theme, difficulty):
         new_words = [w for w in new_words if w["word"] not in used_words]
         debug_logs.append(f"Nach Entfernen verwendeter Wörter: {len(new_words)} verfügbar")
         if not new_words:
-            debug_logs.append("Keine neuen Wörter verfügbar, Schleife abgebrochen")
-            break
-
-        filtered_words, filter_log = ask_grok(theme, new_words, difficulty)
-        debug_logs.append(filter_log)
-        if not filtered_words:
-            debug_logs.append("Keine gefilterten Wörter, Schleife abgebrochen")
-            break
-        for word in filtered_words:
-            if word not in used_words and len(collected_words) < target_count:
-                for w in new_words:
-                    if w["word"] == word:
-                        collected_words.append({"word": word, "translation": w["translation"]})
-                        used_words.add(word)
-                        debug_logs.append(f"Wort hinzugefügt: {word}")
-                        break
-        max_attempts -= 1
-        debug_logs.append(f"Versuch {6 - max_attempts}: {len(collected_words)} Wörter gesammelt")
-
-    if len(collected_words) < target_count:
-        debug_logs.append(f"Warnung: Nur {len(collected_words)} Wörter gefunden für {theme} ({difficulty})")
-    else:
-        debug_logs.append(f"Erfolg: {len(collected_words)} Wörter für {theme} ({difficulty})")
-
-    module = {
-        "theme": theme,
-        "difficulty": difficulty,
-        "words": collected_words
-    }
-    # Speichern
-    modules_file = "data/modules.json"
-    os.makedirs("data", exist_ok=True)
-    try:
-        with open(modules_file, "r") as f:
-            existing_modules = json.load(f)
-    except:
-        existing_modules = []
-    existing_modules.append(module)
-    try:
-        with open(modules_file, "w") as f:
-            json.dump(existing_modules, f, indent=2)
-        debug_logs.append("Modul erfolgreich in modules.json gespeichert")
-    except Exception as e:
-        debug_logs.append(f"Fehler beim Speichern von modules.json: {str(e)}")
-
-    return module, debug_logs
-
-# Gespeicherte Module laden
-def get_saved_modules():
-    modules_file = "data/modules.json"
-    try:
-        with open(modules_file, "r") as f:
-            return json.load(f)
-    except:
-        return []
+            debug_logs.append
