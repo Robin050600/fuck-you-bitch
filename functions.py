@@ -18,16 +18,23 @@ def fetch_pons_words(limit=100):
         {"word": "rice", "translation": "Reis", "meaning": "A staple grain."},
         {"word": "meat", "translation": "Fleisch", "meaning": "Animal flesh used as food."},
         {"word": "fish", "translation": "Fisch", "meaning": "A sea creature used as food."},
+        {"word": "pasta", "translation": "Nudeln", "meaning": "A food made from dough."},
+        {"word": "soup", "translation": "Suppe", "meaning": "A liquid dish."},
+        {"word": "salad", "translation": "Salat", "meaning": "A dish of raw vegetables."},
+        {"word": "cake", "translation": "Kuchen", "meaning": "A sweet dessert."},
         {"word": "shirt", "translation": "Hemd", "meaning": "A piece of clothing."},
         {"word": "jacket", "translation": "Jacke", "meaning": "A piece of outerwear."},
         {"word": "pants", "translation": "Hose", "meaning": "Clothing for legs."},
         {"word": "shoes", "translation": "Schuhe", "meaning": "Footwear."},
         {"word": "hat", "translation": "Hut", "meaning": "Headwear."},
+        {"word": "scarf", "translation": "Schal", "meaning": "A piece of clothing for the neck."},
+        {"word": "gloves", "translation": "Handschuhe", "meaning": "Clothing for hands."},
         {"word": "car", "translation": "Auto", "meaning": "A vehicle with four wheels."},
         {"word": "train", "translation": "Zug", "meaning": "A mode of transport."},
         {"word": "bus", "translation": "Bus", "meaning": "A public transport vehicle."},
         {"word": "airplane", "translation": "Flugzeug", "meaning": "A flying vehicle."},
-        {"word": "bicycle", "translation": "Fahrrad", "meaning": "A two-wheeled vehicle."}
+        {"word": "bicycle", "translation": "Fahrrad", "meaning": "A two-wheeled vehicle."},
+        {"word": "boat", "translation": "Boot", "meaning": "A water vehicle."}
     ]
 
 # Grok API für Filterung
@@ -43,7 +50,7 @@ def ask_grok(theme, words, difficulty):
 
     # Prompt für Grok
     prompt = f"""
-    You are a language learning assistant. Given a list of words with their meanings, select up to 20 words that relate to the theme '{theme}' and match the difficulty level '{difficulty_text}'. Return only the words as a JSON list, e.g., ["apple", "banana"]. If no words match, return an empty list [].
+    You are a language learning assistant. Given a list of words with their meanings, select up to 20 words that relate to the theme '{theme}' and match the difficulty level '{difficulty_text}'. Only select words that are present in the provided list. Return the selected words as a JSON list, e.g., ["apple", "banana"]. If no words match the theme and difficulty, return an empty list [].
 
     Word list:
     {json.dumps(words, indent=2)}
@@ -76,7 +83,7 @@ def ask_grok(theme, words, difficulty):
                 debug_log += f", Gefilterte Wörter: {result}"
                 return result, debug_log
             except (json.JSONDecodeError, KeyError, ValueError) as e:
-                debug_log += f", Fehler beim Parsen der API-Antwort: {str(e)}"
+                debug_log += f", Fehler beim Parsen der API-Antwort: {str(e)}, Rohantwort: {response.text}"
                 raise
         else:
             debug_log += f", Grok API Fehler: Status {response.status_code}, Antwort: {response.text}"
@@ -85,9 +92,9 @@ def ask_grok(theme, words, difficulty):
         debug_log += f", Fehler bei Grok API: {str(e)}"
         # Fallback: Einfache Filterung
         theme_words = {
-            "Essen": ["apple", "banana", "bread", "cheese", "milk", "egg", "rice", "meat", "fish"],
-            "Kleidung": ["shirt", "jacket", "pants", "shoes", "hat"],
-            "Reisen": ["car", "train", "bus", "airplane", "bicycle"]
+            "Essen": ["apple", "banana", "bread", "cheese", "milk", "egg", "rice", "meat", "fish", "pasta", "soup", "salad", "cake"],
+            "Kleidung": ["shirt", "jacket", "pants", "shoes", "hat", "scarf", "gloves"],
+            "Reisen": ["car", "train", "bus", "airplane", "bicycle", "boat"]
         }
         filtered = [w for w in theme_words.get(theme, []) if w in [word["word"] for word in words]]
         debug_log += f", Fallback aktiviert, Gefilterte Wörter: {filtered}"
