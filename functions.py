@@ -5,80 +5,64 @@ import random
 
 # API-Schlüssel
 GROK_API_KEY = "xai-uOzSSJW1PHZZUPqZKznd6fyiaBcGkVAyQEWHacCReXDsEiTcWh4bmjJ47azeD0EvC1KngpXHBBsPDpV6"
-OXFORD_APP_ID = "098ae05c"
-OXFORD_APP_KEY = "ebd79756ae171cd4ce643ea862d00d62"
 
-# Oxford API oder Fallback-Daten
-def fetch_oxford_words(theme, limit=100):
-    debug_log = "fetch_oxford_words gestartet"
+# Free Dictionary API oder Fallback-Daten
+def fetch_dictionary_words(theme, limit=100):
+    debug_log = "fetch_dictionary_words gestartet"
     theme_words = {
         "Essen": [
             "apple", "banana", "bread", "cheese", "milk", "egg", "rice", "meat", 
-            "fish", "pasta", "soup", "salad", "cake", "fruit", "vegetable", "dessert"
+            "fish", "pasta", "soup", "salad", "cake", "fruit", "vegetable", "dessert",
+            "chicken", "potato", "tomato", "butter", "sugar", "salt"
         ],
         "Kleidung": [
             "shirt", "jacket", "pants", "shoes", "hat", "scarf", "gloves", 
-            "dress", "coat", "socks", "belt"
+            "dress", "coat", "socks", "belt", "sweater", "skirt", "tie", 
+            "boots", "cap", "jeans", "underwear", "vest", "blouse"
         ],
         "Reisen": [
             "car", "train", "bus", "airplane", "bicycle", "boat", "passport", 
-            "ticket", "map", "luggage", "hotel"
+            "ticket", "map", "luggage", "hotel", "airport", "station", "road", 
+            "beach", "mountain", "city", "village", "guide", "camera", "suitcase"
         ]
     }
     selected_words = theme_words.get(theme, [])[:limit]
-    debug_log += f", Thema: {theme}, {len(selected_words)} Wörter ausgew chosen"
+    debug_log += f", Thema: {theme}, {len(selected_words)} Wörter ausgewählt"
 
     words = []
     for word in selected_words:
         try:
             response = requests.get(
-                f"https://od-api-sandbox.oxforddictionaries.com/api/v2/entries/en-gb/{word}",
-                headers={
-                    "app_id": OXFORD_APP_ID,
-                    "app_key": OXFORD_APP_KEY
-                },
-                params={"fields": "translations,definitions"}
+                f"https://api.dictionaryapi.dev/api/v2/entries/en/{word}"
             )
-            debug_log += f", Oxford API für '{word}': Status {response.status_code}"
+            debug_log += f", Free Dictionary API für '{word}': Status {response.status_code}"
             if response.status_code == 200:
                 data = response.json()
                 try:
-                    # Extrahiere Übersetzung (z. B. ins Deutsche)
-                    translation = None
+                    # Extrahiere Definition
                     meaning = None
-                    if "results" in data and data["results"]:
-                        for result in data["results"]:
-                            for lexical_entry in result.get("lexicalEntries", []):
-                                for entry in lexical_entry.get("entries", []):
-                                    for sense in entry.get("senses", []):
-                                        # Übersetzung
-                                        translations = sense.get("translations", [])
-                                        if translations:
-                                            for t in translations:
-                                                if t.get("language") == "de":
-                                                    translation = t.get("text")
-                                                    break
-                                        # Bedeutung
-                                        definitions = sense.get("definitions", [])
-                                        if definitions:
-                                            meaning = definitions[0]
-                                        if translation and meaning:
-                                            break
-                                    if translation and meaning:
+                    if isinstance(data, list) and data:
+                        for entry in data:
+                            for meaning_entry in entry.get("meanings", []):
+                                for definition in meaning_entry.get("definitions", []):
+                                    if definition.get("definition"):
+                                        meaning = definition["definition"]
                                         break
-                                if translation and meaning:
+                                if meaning:
                                     break
-                            if translation and meaning:
+                            if meaning:
                                 break
-                    if translation and meaning:
+                    if meaning:
+                        # Übersetzung mit Grok oder Fallback
+                        translation = None
                         words.append({
                             "word": word,
-                            "translation": translation,
+                            "translation": translation,  # Wird später gefüllt
                             "meaning": meaning
                         })
-                        debug_log += f", Wort hinzugefügt: {word} -> {translation}"
+                        debug_log += f", Definition für '{word}' gefunden: {meaning}"
                     else:
-                        debug_log += f", Keine Übersetzung oder Bedeutung für '{word}' gefunden"
+                        debug_log += f", Keine Definition für '{word}' gefunden"
                 except Exception as e:
                     debug_log += f", Fehler beim Parsen für '{word}': {str(e)}"
             else:
@@ -86,7 +70,7 @@ def fetch_oxford_words(theme, limit=100):
         except Exception as e:
             debug_log += f", Fehler bei API-Anfrage für '{word}': {str(e)}"
 
-    debug_log += f", {len(words)} Wörter geladen"
+    debug_log += f", {len(words)} Wörter von API geladen"
     if not words:
         debug_log += ", Fallback aktiviert"
         fallback_words = [
@@ -103,22 +87,84 @@ def fetch_oxford_words(theme, limit=100):
             {"word": "soup", "translation": "Suppe", "meaning": "A liquid dish."},
             {"word": "salad", "translation": "Salat", "meaning": "A dish of raw vegetables."},
             {"word": "cake", "translation": "Kuchen", "meaning": "A sweet dessert."},
-            {"word": "shirt", "translation": "Hemd", "meaning": "A piece of clothing."},
+            {"word": "chicken", "translation": "Huhn", "meaning": "A type of poultry."},
+            {"word": "potato", "translation": "Kartoffel", "meaning": "A starchy vegetable."},
+            {"word": "tomato", "translation": "Tomate", "meaning": "A red or yellowish fruit."},
+            {"word": "butter", "translation": "Butter", "meaning": "A spread made from cream."},
+            {"word": "sugar", "translation": "Zucker", "meaning": "A sweet substance."},
+            {"word": "salt", "translation": "Salz", "meaning": "A mineral used for seasoning."},
+            {"word": "fruit", "translation": "Obst", "meaning": "Edible produce from plants."},
+            {"word": "shirt", "translation": "Hemd", "meaning": "A piece of clothing for the upper body."},
             {"word": "jacket", "translation": "Jacke", "meaning": "A piece of outerwear."},
-            {"word": "pants", "translation": "Hose", "meaning": "Clothing for legs."},
+            {"word": "pants", "translation": "Hose", "meaning": "Clothing for the legs."},
             {"word": "shoes", "translation": "Schuhe", "meaning": "Footwear."},
             {"word": "hat", "translation": "Hut", "meaning": "Headwear."},
             {"word": "scarf", "translation": "Schal", "meaning": "A piece of clothing for the neck."},
             {"word": "gloves", "translation": "Handschuhe", "meaning": "Clothing for hands."},
+            {"word": "dress", "translation": "Kleid", "meaning": "A one-piece garment."},
+            {"word": "coat", "translation": "Mantel", "meaning": "A long outer garment."},
+            {"word": "socks", "translation": "Socken", "meaning": "Clothing for the feet."},
+            {"word": "belt", "translation": "Gürtel", "meaning": "A strip to secure clothing."},
+            {"word": "sweater", "translation": "Pullover", "meaning": "A knitted garment."},
+            {"word": "skirt", "translation": "Rock", "meaning": "A garment for the lower body."},
+            {"word": "tie", "translation": "Krawatte", "meaning": "A neck accessory."},
+            {"word": "boots", "translation": "Stiefel", "meaning": "Sturdy footwear."},
+            {"word": "cap", "translation": "Mütze", "meaning": "A soft head covering."},
+            {"word": "jeans", "translation": "Jeans", "meaning": "Denim trousers."},
+            {"word": "underwear", "translation": "Unterwäsche", "meaning": "Clothing worn under other clothes."},
+            {"word": "vest", "translation": "Weste", "meaning": "A sleeveless garment."},
             {"word": "car", "translation": "Auto", "meaning": "A vehicle with four wheels."},
             {"word": "train", "translation": "Zug", "meaning": "A mode of transport."},
             {"word": "bus", "translation": "Bus", "meaning": "A public transport vehicle."},
             {"word": "airplane", "translation": "Flugzeug", "meaning": "A flying vehicle."},
             {"word": "bicycle", "translation": "Fahrrad", "meaning": "A two-wheeled vehicle."},
-            {"word": "boat", "translation": "Boot", "meaning": "A water vehicle."}
+            {"word": "boat", "translation": "Boot", "meaning": "A water vehicle."},
+            {"word": "passport", "translation": "Reisepass", "meaning": "A travel document."},
+            {"word": "ticket", "translation": "Fahrkarte", "meaning": "A document for travel."},
+            {"word": "map", "translation": "Karte", "meaning": "A diagram of an area."},
+            {"word": "luggage", "translation": "Gepäck", "meaning": "Bags for travel."},
+            {"word": "hotel", "translation": "Hotel", "meaning": "A place for lodging."},
+            {"word": "airport", "translation": "Flughafen", "meaning": "A place for air travel."},
+            {"word": "station", "translation": "Bahnhof", "meaning": "A place for trains."}
         ]
         words = [w for w in fallback_words if w["word"] in theme_words.get(theme, [])]
         debug_log += f", Fallback-Wörter: {len(words)} geladen"
+
+    # Übersetzungen mit Grok generieren, falls nicht vorhanden
+    for word_entry in words:
+        if not word_entry["translation"]:
+            try:
+                response = requests.post(
+                    "https://api.x.ai/v1/chat/completions",
+                    headers={
+                        "Content-Type": "application/json",
+                        "Authorization": f"Bearer {GROK_API_KEY}"
+                    },
+                    json={
+                        "messages": [
+                            {"role": "system", "content": "You are a translation assistant."},
+                            {"role": "user", "content": f"Translate the English word '{word_entry['word']}' to German."}
+                        ],
+                        "model": "grok-3-latest",
+                        "stream": False,
+                        "temperature": 0
+                    }
+                )
+                debug_log += f", Grok API für Übersetzung von '{word_entry['word']}': Status {response.status_code}"
+                if response.status_code == 200:
+                    translation = response.json()["choices"][0]["message"]["content"].strip()
+                    word_entry["translation"] = translation
+                    debug_log += f", Übersetzung für '{word_entry['word']}': {translation}"
+                else:
+                    debug_log += f", Grok API-Fehler für '{word_entry['word']}': Status {response.status_code}, Antwort: {response.text}"
+            except Exception as e:
+                debug_log += f", Fehler bei Grok Übersetzung für '{word_entry['word']}': {str(e)}"
+                # Fallback-Übersetzung verwenden
+                for fallback in fallback_words:
+                    if fallback["word"] == word_entry["word"]:
+                        word_entry["translation"] = fallback["translation"]
+                        debug_log += f", Übersetzung für '{word_entry['word']}' aus Fallback: {fallback['translation']}"
+                        break
 
     return words, debug_log
 
@@ -172,9 +218,9 @@ def ask_grok(theme, words, difficulty):
     except Exception as e:
         debug_log += f", Fehler bei Grok API: {str(e)}, Fallback aktiviert"
         theme_words = {
-            "Essen": ["apple", "banana", "bread", "cheese", "milk", "egg", "rice", "meat", "fish", "pasta", "soup", "salad", "cake"],
-            "Kleidung": ["shirt", "jacket", "pants", "shoes", "hat", "scarf", "gloves"],
-            "Reisen": ["car", "train", "bus", "airplane", "bicycle", "boat"]
+            "Essen": ["apple", "banana", "bread", "cheese", "milk", "egg", "rice", "meat", "fish", "pasta", "soup", "salad", "cake", "chicken", "potato", "tomato", "butter", "sugar", "salt", "fruit"],
+            "Kleidung": ["shirt", "jacket", "pants", "shoes", "hat", "scarf", "gloves", "dress", "coat", "socks", "belt", "sweater", "skirt", "tie", "boots", "cap", "jeans", "underwear", "vest", "blouse"],
+            "Reisen": ["car", "train", "bus", "airplane", "bicycle", "boat", "passport", "ticket", "map", "luggage", "hotel", "airport", "station", "road", "beach", "mountain", "city", "village", "guide", "camera"]
         }
         filtered = [w for w in theme_words.get(theme, []) if w in [word["word"] for word in words]]
         debug_log += f", Fallback-Wörter: {filtered}"
@@ -189,8 +235,8 @@ def create_module(theme, difficulty):
     max_attempts = 5
 
     while len(collected_words) < target_count and max_attempts > 0:
-        new_words, oxford_log = fetch_oxford_words(theme, limit=100)
-        debug_logs.append(oxford_log)
+        new_words, dictionary_log = fetch_dictionary_words(theme, limit=100)
+        debug_logs.append(dictionary_log)
         new_words = [w for w in new_words if w["word"] not in used_words]
         debug_logs.append(f"Nach Entfernen verwendeter Wörter: {len(new_words)} verfügbar")
         if not new_words:
